@@ -1,0 +1,10 @@
+{
+  "server_name": "your-server-name",
+  "run_as": "root",
+  "commands": [
+    "whoami",
+    "uptime",
+    "docker ps --format 'table {{.Names}}\t{{.Status}}'"
+  ],
+  "stop_on_error": true
+}

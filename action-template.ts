@@ -1,11 +1,10 @@
 /**
- * Action: KCR - Komodo Command Runner (v1.0)
- * Description: Sequential Bash command executor for Komodo.
- * Author: Gemini & User
+ * Action: KCR - Komodo Command Runner (v1.1)
+ * Description: Sequential Bash command executor with persistent user context.
  */
 
 async function runKCR() {
-    // @ts-ignore - ARGS is injected by Komodo at runtime
+    // @ts-ignore
     const config = ARGS;
 
     if (!config || !config.server_name || !config.commands) {
@@ -18,34 +17,36 @@ async function runKCR() {
     const stopOnError = config.stop_on_error !== false;
     const terminalName = `kcr-${Math.random().toString(36).substring(7)}`;
 
-    console.log(`🛠️ KCR: Executing on [${server}] as [${user}]`);
+    // Definiamo il comando di avvio del terminale
+    // Usiamo 'sudo -iu' per caricare anche il profilo/ambiente dell'utente
+    const shellCommand = user === "root" ? "bash" : `sudo -iu ${user} bash`;
+
+    console.log(`🛠️ KCR: Starting persistent terminal on [${server}] as [${user}]`);
 
     try {
-        // 1. Initialize Terminal
+        // 1. Inizializza il terminale GIÀ con l'utente corretto
         await komodo.write("CreateTerminal", {
             server: server,
             name: terminalName,
-            command: "bash",
+            command: shellCommand,
             recreate: Types.TerminalRecreateMode.Always,
         });
 
-        for (const cmd of commands) {
-            // Use sudo -u for non-interactive user switching
-            const finalCommand = user === "root" 
-                ? cmd 
-                : `sudo -u ${user} bash -c '${cmd}'`;
+        // Piccolo delay per permettere alla shell di inizializzarsi
+        await new Promise(r => setTimeout(r, 500));
 
+        for (const cmd of commands) {
             console.log(`[EXEC] ${cmd}`);
 
             let exitCode = "0";
             let finished = false;
 
-            // 2. Execute command and stream logs
+            // 2. Esegui il comando "nudo" (il terminale è già dell'utente giusto)
             await komodo.execute_terminal(
                 {
                     server: server,
                     terminal: terminalName,
-                    command: finalCommand,
+                    command: cmd,
                 },
                 {
                     onLine: (line: string) => console.log(`  > ${line}`),
@@ -56,18 +57,14 @@ async function runKCR() {
                 }
             );
 
-            // Wait for completion before next command
             while (!finished) {
-                await new Promise(r => setTimeout(r, 200));
+                await new Promise(r => setTimeout(r, 100));
             }
 
             if (exitCode !== "0") {
                 const errorMsg = `Command failed with exit code: ${exitCode}`;
-                if (stopOnError) {
-                    throw new Error(errorMsg);
-                } else {
-                    console.warn(`⚠️ ${errorMsg}. Continuing...`);
-                }
+                if (stopOnError) throw new Error(errorMsg);
+                console.warn(`⚠️ ${errorMsg}. Continuing...`);
             }
         }
 
@@ -77,21 +74,14 @@ async function runKCR() {
         console.error(`❌ KCR ERROR: ${err.message}`);
         throw err;
     } finally {
-        // 3. Robust Cleanup
+        // 3. Cleanup
         try {
-            await komodo.execute_terminal(
-                { server: server, terminal: terminalName, command: "exit 0" },
-                { onLine: () => {}, onFinish: () => {} }
-            );
-            await new Promise(r => setTimeout(r, 500));
             await komodo.write("DeleteTerminal", {
                 server: server,
                 terminal: terminalName,
                 name: terminalName
             } as any);
-        } catch (e) {
-            // Cleanup error ignored
-        }
+        } catch (e) { /* ignore cleanup errors */ }
     }
 }
 

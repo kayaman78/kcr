@@ -3,25 +3,24 @@
 **Version:** 1.1  
 **Type:** Komodo Action Template
 
-Esegue una sequenza di comandi Bash su un server remoto tramite un terminale persistente, mantenendo il contesto utente tra un comando e l'altro.
+Executes a sequence of Bash commands on a remote server through a persistent terminal, maintaining user context across all commands.
 
 ---
 
-## Come funziona
+## How it works
 
-1. **Apre un terminale persistente** sul server target, già autenticato come l'utente specificato (`root` usa `bash` direttamente, altri utenti passano per `sudo -iu`).
-2. **Esegue i comandi in sequenza**, stampando l'output riga per riga.
-3. **Gestisce gli errori** per ogni comando: se `stop_on_error` è `true` (default), l'esecuzione si interrompe al primo fallimento; altrimenti continua con un warning.
-4. **Chiude e cancella il terminale** al termine, anche in caso di errore.
+1. **Opens a persistent terminal** on the target server, already authenticated as the specified user (`root` uses `bash` directly, other users are switched via `sudo -iu`).
+2. **Runs commands sequentially**, printing output line by line.
+3. **Handles errors** per command: if `stop_on_error` is `true` (default), execution stops at the first failure; otherwise it continues with a warning.
+4. **Closes and deletes the terminal** when done, even if an error occurred.
 
 ---
 
-## Creare il template
+## Creating the template
 
-1. In Komodo, vai su **Actions → New Action**.
-2. Incolla il codice TypeScript nel campo **Script**.
-3. Nel campo **Args (JSON)**, configura i parametri:
-
+1. In Komodo, go to **Actions → New Action**.
+2. Paste the TypeScript code into the **Script** field.
+3. In the **Args (JSON)** field, configure the parameters:
 ```json
 {
   "server_name": "your-server-name",
@@ -35,23 +34,22 @@ Esegue una sequenza di comandi Bash su un server remoto tramite un terminale per
 }
 ```
 
-4. Salva e avvia l'action.
+4. Save and run the action.
 
 ---
 
-## Parametri
+## Parameters
 
-| Parametro | Tipo | Obbligatorio | Default | Descrizione |
+| Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `server_name` | `string` | ✅ | — | Nome del server Komodo target |
-| `commands` | `string[]` | ✅ | — | Lista di comandi Bash da eseguire |
-| `run_as` | `string` | ❌ | `root` | Utente con cui eseguire i comandi |
-| `stop_on_error` | `boolean` | ❌ | `true` | Interrompe l'esecuzione al primo errore |
+| `server_name` | `string` | ✅ | — | Name of the target Komodo server |
+| `commands` | `string[]` | ✅ | — | List of Bash commands to execute |
+| `run_as` | `string` | ❌ | `root` | User to run the commands as |
+| `stop_on_error` | `boolean` | ❌ | `true` | Stop execution on first error |
 
 ---
 
-## Esempio di output
-
+## Example output
 ```
 🛠️ KCR: Starting persistent terminal on [my-server] as [root]
 [EXEC] whoami

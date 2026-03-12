@@ -1,12 +1,12 @@
 # KCR — Komodo Command Runner
 
-**Project Status**: Active | **Version**: 1.1 | **Maintained**: Yes
+**Project Status**: Active | **Version**: 1.2 | **Maintained**: Yes
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Komodo](https://img.shields.io/badge/komodo-action-blue.svg)](https://github.com/mbecker20/komodo)
 [![Type](https://img.shields.io/badge/type-Action%20Template-informational.svg)](https://github.com/kayaman78/kcr)
 
-Komodo Action template that executes a sequence of Bash commands on a remote server through a persistent terminal, maintaining user context across all commands.
+Komodo Action template that executes a sequence of Bash commands on a remote server through a persistent terminal, maintaining user context across all commands. Includes per-command timeout guard and guaranteed terminal cleanup on any exit path.
 
 > Part of the **KDD ecosystem** — see also [KDD](https://github.com/kayaman78/kdd) for MySQL / PostgreSQL / MongoDB backups and [DABS](https://github.com/kayaman78/dabs) for SQLite backups.
 
@@ -35,9 +35,10 @@ Komodo Action template that executes a sequence of Bash commands on a remote ser
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
 | `server_name` | `string` | ✅ | — | Name of the target Komodo server |
-| `commands` | `string[]` | ✅ | — | List of Bash commands to execute |
+| `commands` | `string[]` | ✅ | — | Command or list of Bash commands to execute |
 | `run_as` | `string` | ❌ | `root` | User to run the commands as |
 | `stop_on_error` | `boolean` | ❌ | `true` | Stop execution on first error |
+| `timeout_seconds` | `number` | ❌ | `300` | Max seconds to wait for a single command before raising a timeout error |
 
 ---
 
@@ -52,7 +53,8 @@ Komodo Action template that executes a sequence of Bash commands on a remote ser
     "uptime",
     "docker ps --format 'table {{.Names}}\t{{.Status}}'"
   ],
-  "stop_on_error": true
+  "stop_on_error": true,
+  "timeout_seconds": 300
 }
 ```
 
@@ -83,9 +85,22 @@ KCR is the glue that connects shell-based tools like [DABS](https://github.com/k
   "server_name": "prod-server",
   "run_as": "root",
   "commands": ["bash /srv/docker/dabs/backup-sqlite.sh"],
-  "stop_on_error": true
+  "stop_on_error": true,
+  "timeout_seconds": 300
 }
 ```
+
+---
+
+## Changelog
+
+### v1.2
+- Added `timeout_seconds` parameter (default: 300) — raises an error if a single command exceeds the limit, preventing the action from hanging indefinitely
+- Translated inline comments to English
+- Updated JSDoc with all parameters documented
+
+### v1.1
+- Initial public release
 
 ---
 

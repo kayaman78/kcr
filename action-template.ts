@@ -29,7 +29,7 @@ async function runKCR() {
     // Use 'sudo -iu' for non-root to load the user's full profile and environment
     const shellCommand = user === "root" ? "bash" : `sudo -iu ${user} bash`;
 
-    console.log(`KCR: Starting terminal on [${server}] as [${user}]`);
+    console.log(`🛠️ KCR: Starting terminal on [${server}] as [${user}]`);
 
     try {
         // 1. Open persistent terminal already authenticated as the target user
@@ -45,7 +45,7 @@ async function runKCR() {
 
         // 2. Execute commands sequentially in the same terminal session
         for (const cmd of commands) {
-            console.log(`[EXEC] ${cmd}`);
+            console.log(`▶️ [EXEC] ${cmd}`);
 
             let exitCode = "0";
             let finished = false;
@@ -67,7 +67,7 @@ async function runKCR() {
             while (!finished) {
                 if (Date.now() > deadline) {
                     throw new Error(
-                        `Command timed out after ${config.timeout_seconds ?? 300}s: ${cmd}`
+                        `⏱️ Command timed out after ${config.timeout_seconds ?? 300}s: ${cmd}`
                     );
                 }
                 await new Promise(r => setTimeout(r, 100));
@@ -76,14 +76,14 @@ async function runKCR() {
             if (exitCode !== "0") {
                 const errorMsg = `Command failed with exit code: ${exitCode}`;
                 if (stopOnError) throw new Error(errorMsg);
-                console.warn(`WARNING: ${errorMsg}. Continuing...`);
+                console.warn(`⚠️ WARNING: ${errorMsg}. Continuing...`);
             }
         }
 
-        console.log("KCR: Execution finished successfully.");
+        console.log("✅ KCR: Execution finished successfully.");
 
     } catch (err: any) {
-        console.error(`KCR ERROR: ${err.message}`);
+        console.error(`❌ KCR ERROR: ${err.message}`);
         throw err;
 
     } finally {

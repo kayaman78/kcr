@@ -8,7 +8,7 @@
 
 Komodo Action template that executes a sequence of Bash commands on a remote server through a persistent terminal, maintaining user context across all commands. Includes per-command timeout guard and guaranteed terminal cleanup on any exit path.
 
-> Part of the **KDD ecosystem** — see also [KDD](https://github.com/kayaman78/kdd) for MySQL / PostgreSQL / MongoDB backups and [DABS](https://github.com/kayaman78/dabs) for SQLite backups.
+> Part of the **KDD ecosystem** — see also [KDD](https://github.com/kayaman78/kdd) for MySQL / PostgreSQL / MongoDB, [DABS](https://github.com/kayaman78/dabs) for SQLite, and [DABV](https://github.com/kayaman78/dabv) for Docker volumes.
 
 ---
 
@@ -78,6 +78,7 @@ KCR is the glue that connects shell-based tools like [DABS](https://github.com/k
 
 1. **KDD Action** → backs up MySQL, PostgreSQL, MongoDB across all Docker networks
 2. **KCR Action running DABS** → backs up all SQLite databases on the same host
+3. **KCR Action running DABV** → backs up named Docker volumes
 3. **One Komodo Procedure** schedules both, runs them sequentially, separate email report per job
 
 ```json
@@ -110,6 +111,7 @@ KCR is the glue that connects shell-based tools like [DABS](https://github.com/k
 |---------|-------------|
 | [KDD](https://github.com/kayaman78/kdd) | Docker backup for MySQL, PostgreSQL, MongoDB |
 | [DABS](https://github.com/kayaman78/dabs) | Docker automated backup for SQLite |
+| [DABV](https://github.com/kayaman78/dabv) | Docker automated backup for volumes |
 
 ---
 

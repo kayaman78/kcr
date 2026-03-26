@@ -93,6 +93,32 @@ KCR is the glue that connects shell-based tools like [DABS](https://github.com/k
 
 ---
 
+## Updating
+
+In Komodo, the **Script** field (TypeScript code) and the **Args** field (your JSON parameters) are stored separately. Updating KCR never touches your parameters.
+
+**1. Open the Action in Komodo**
+
+Go to Actions → select your KCR Action.
+
+**2. Replace the Script field only**
+
+Paste the new content of [`action-template.ts`](action-template.ts) into the Script field. Your Args JSON is in a separate field and is not affected.
+
+**3. Save**
+
+Done. No server changes, no parameter re-entry.
+
+---
+
+### Multiple servers
+
+If you have one KCR Action per server, repeat the Script paste for each one. Since the code is identical across all of them and the only difference is `server_name` in the Args, this takes about a minute per action.
+
+> **Tip**: To save time, update one action, verify it works, then copy-paste the Script field into the rest.
+
+---
+
 ## Changelog
 
 ### v1.2

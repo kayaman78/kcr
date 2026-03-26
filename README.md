@@ -79,7 +79,7 @@ KCR is the glue that connects shell-based tools like [DABS](https://github.com/k
 1. **KDD Action** → backs up MySQL, PostgreSQL, MongoDB across all Docker networks
 2. **KCR Action running DABS** → backs up all SQLite databases on the same host
 3. **KCR Action running DABV** → backs up named Docker volumes
-3. **One Komodo Procedure** schedules both, runs them sequentially, separate email report per job
+4. **One Komodo Procedure** schedules all three, runs them sequentially, separate email report per job
 
 ```json
 {

@@ -23,10 +23,9 @@ Komodo Action template that executes a sequence of Bash commands on a remote ser
 
 ## Setup
 
-1. In Komodo, go to **Actions → New Action**
-2. Paste the TypeScript code into the **Script** field
-3. In the **Args (JSON)** field, configure your parameters
-4. Save and run the action
+In Komodo go to **Resource Sync → New Resource Sync**, paste the content of [kcr-action-template.toml](kcr-action-template.toml), and execute the sync. The Action template is created automatically with the TypeScript code and example parameters already in place.
+
+Open the imported Action, go to the **Args** field, and set `server_name` and `commands` for your use case.
 
 ---
 

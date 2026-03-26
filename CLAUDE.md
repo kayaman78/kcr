@@ -4,8 +4,9 @@
 Action template TypeScript per Komodo che esegue sequenze di comandi Bash su server remoti con terminal persistente e context utente. È il layer di orchestrazione che lancia DABS e DABV dall'interfaccia Komodo.
 
 ## File
-- `action-template.ts` — codice Action da incollare in Komodo UI
+- `action-template.ts` — codice Action TypeScript (source)
 - `arguments-example.json` — esempio parametri JSON per la Action
+- `kcr-action-template.toml` — export Komodo Resource Sync — importa direttamente in Komodo
 - `README.md` — documentazione e guide d'uso
 
 ## Come funziona in Komodo

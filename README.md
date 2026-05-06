@@ -1,6 +1,6 @@
 # KCR — Komodo Command Runner
 
-**Project Status**: Active | **Version**: 1.2 | **Maintained**: Yes
+**Project Status**: Active | **Version**: 2.0 | **Maintained**: Yes | **Requires**: Komodo v2
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Komodo](https://img.shields.io/badge/komodo-action-blue.svg)](https://github.com/mbecker20/komodo)
@@ -119,6 +119,14 @@ If you have one KCR Action per server, repeat the Script paste for each one. Sin
 ---
 
 ## Changelog
+
+### v2.0 — Komodo v2 migration (breaking)
+- **Requires Komodo v2.** Migrated from `komodo.execute_terminal` (v1) to `komodo.execute_server_terminal` (v2 unified API).
+- Terminal initialization is now inline: `init: { command, recreate }` is passed on the **first** `execute_server_terminal` call only — subsequent calls reuse the same shell to preserve user-context persistence (`cwd`, env, sudo session) across commands.
+- Removed the explicit `komodo.write("CreateTerminal", ...)` step and the 500ms post-create delay — both unnecessary with v2's unified create+execute call.
+- `DeleteTerminal` cleanup pattern in `finally` block is unchanged (still guarantees terminal removal on any exit path, including validation errors and timeouts).
+- Hardened terminal name uniqueness: `kcr-${timestamp}-${random6}` instead of the previous `Math.random().substring(7)` which could occasionally produce short or empty suffixes — now collision-proof for any realistic concurrent rate.
+- No changes to user-facing parameters: `server_name`, `commands`, `run_as`, `stop_on_error`, `timeout_seconds` work exactly as before.
 
 ### v1.2
 - Added `timeout_seconds` parameter (default: 300) — raises an error if a single command exceeds the limit, preventing the action from hanging indefinitely

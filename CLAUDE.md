@@ -9,10 +9,10 @@ Action template TypeScript per Komodo che esegue sequenze di comandi Bash su ser
 - `kcr-action-template.toml` — export Komodo Resource Sync — importa direttamente in Komodo
 - `README.md` — documentazione e guide d'uso
 
-## Come funziona in Komodo
-1. Crea un terminal persistente sul server target (`CreateTerminal` con `recreate: Always`)
-2. Attende 500ms per init shell
-3. Esegue ogni comando in sequenza con output line-by-line (`execute_terminal`)
+## Come funziona in Komodo (v2 API)
+1. La prima `execute_server_terminal` apre il terminal persistente passando `init: { command: shellCommand, recreate: Always }`
+2. Le call successive eseguono i comandi seguenti **senza** `init` — riusano la stessa shell, persistenza user-context preservata
+3. Output line-by-line via callback `onLine`
 4. Per ogni comando: timeout guard attivo, stop su errore se `stop_on_error: true`
 5. Cleanup garantito del terminal nel `finally` block (`DeleteTerminal`) — sempre eseguito anche su errore
 
@@ -29,19 +29,25 @@ Action template TypeScript per Komodo che esegue sequenze di comandi Bash su ser
 }
 ```
 
-## API Komodo utilizzate
+## API Komodo utilizzate (v2)
 ```typescript
-komodo.write("CreateTerminal", { server, name, command: shellCommand, recreate: "Always" })
-komodo.execute_terminal({ server, terminal, command }, { onLine, onFinish })
+// Prima call: init inline crea il terminal (recreate: Always nuke residui)
+komodo.execute_server_terminal(
+  { server, terminal, command, init: { command: shellCommand, recreate: "Always" } },
+  { onLine, onFinish }
+)
+// Call successive: stesso terminal, niente init
+komodo.execute_server_terminal({ server, terminal, command }, { onLine, onFinish })
+// Cleanup
 komodo.write("DeleteTerminal", { server, terminal, name })
 ```
 
 ## Terminal lifecycle — CRITICO
 Il meccanismo di apertura/chiusura terminal ha richiesto iterazioni significative. **Non modificare questa logica.**
 
-- `CreateTerminal` con `recreate: Always` — elimina residui da run precedenti
-- Il terminal viene passato comandi via `execute_terminal` nella stessa sessione bash
-- `finally` block garantisce sempre `DeleteTerminal` — anche su timeout o eccezione
+- `init` con `recreate: Always` passato **solo alla prima** `execute_server_terminal` — elimina residui da run precedenti e apre la shell
+- Le call successive **non passano `init`**: riusano lo stesso terminal e mantengono la persistenza user-context. Passare di nuovo `init` con `recreate: Always` ricreerebbe la shell ad ogni comando, perdendo `cwd`/env/sudo session.
+- `finally` block garantisce sempre `DeleteTerminal` — anche su timeout o eccezione (e su validation-error early, dove il terminal non esiste ancora: l'errore di Delete è swallowed).
 - Non usare `exit` nel flusso normale: il terminal viene chiuso solo da `DeleteTerminal`
 
 ## Utilizzo tipico nell'ecosistema
@@ -60,11 +66,12 @@ Il meccanismo di apertura/chiusura terminal ha richiesto iterazioni significativ
 ```
 
 ## Note architetturali
-- `recreate: "Always"` — garantisce terminal pulito anche se residuo da run precedente
+- `recreate: "Always"` (passato solo nel primo `init`) — garantisce terminal pulito anche se residuo da run precedente
 - Timeout per-command (`timeoutMs`): polling ogni 100ms sul flag `finished`
 - Non c'è esecuzione parallela (sequenziale by design)
-- Non root: usa `sudo -iu ${user} bash` per caricare il profilo completo dell'utente
+- Non root: usa `sudo -iu ${user} bash` per caricare il profilo completo dell'utente — passato come `init.command` alla prima call
 - Output visibile in Komodo UI in tempo reale via `onLine` callback
+- Komodo v2 required: usa `execute_server_terminal` (rinominato da `execute_terminal` in v1) con `init` block inline
 
 ## Non implementato
 - Retry per singolo comando

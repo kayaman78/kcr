@@ -5,8 +5,9 @@ template = true
 webhook_enabled = false
 file_contents = """
 /**
- * Action: KCR - Komodo Command Runner (v1.2)
+ * Action: KCR - Komodo Command Runner (v2.0)
  * Description: Sequential Bash command executor with persistent user context.
+ *              Requires Komodo v2 (uses execute_server_terminal with inline init).
  *
  * ARGS JSON fields:
  *   server_name     - Komodo server name (required)
@@ -29,8 +30,10 @@ async function runKCR() {
     const stopOnError = config.stop_on_error !== false;
     const timeoutMs   = (config.timeout_seconds ?? 300) * 1000;
 
-    // Unique terminal name to avoid collisions on concurrent runs
-    const terminalName = `kcr-${Math.random().toString(36).substring(7)}`;
+    // Unique terminal name to avoid collisions on concurrent runs.
+    // Timestamp + 6-char random suffix: collision-proof for any realistic concurrent rate.
+    // (Previous Math.random().substring(7) could occasionally produce short/empty strings.)
+    const terminalName = `kcr-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
     // Use 'sudo -iu' for non-root to load the user's full profile and environment
     const shellCommand = user === "root" ? "bash" : `sudo -iu ${user} bash`;
@@ -38,30 +41,33 @@ async function runKCR() {
     console.log(`🛠️ KCR: Starting terminal on [${server}] as [${user}]`);
 
     try {
-        // 1. Open persistent terminal already authenticated as the target user
-        await komodo.write("CreateTerminal", {
-            server: server,
-            name: terminalName,
-            command: shellCommand,
-            recreate: Types.TerminalRecreateMode.Always,
-        });
+        // Execute commands sequentially in the same persistent terminal.
+        // Komodo v2 unified API: the first call opens the terminal via `init`;
+        // subsequent calls reuse the same shell — passing `init` again would
+        // recreate it and break user-context persistence across commands.
+        let firstCall = true;
 
-        // Brief delay to let the shell initialise before sending commands
-        await new Promise(r => setTimeout(r, 500));
-
-        // 2. Execute commands sequentially in the same terminal session
         for (const cmd of commands) {
             console.log(`▶️ [EXEC] ${cmd}`);
 
             let exitCode = "0";
             let finished = false;
 
-            await komodo.execute_terminal(
-                {
-                    server: server,
-                    terminal: terminalName,
-                    command: cmd,
-                },
+            const execArgs: any = {
+                server: server,
+                terminal: terminalName,
+                command: cmd,
+            };
+            if (firstCall) {
+                execArgs.init = {
+                    command: shellCommand,
+                    recreate: Types.TerminalRecreateMode.Always,
+                };
+                firstCall = false;
+            }
+
+            await komodo.execute_server_terminal(
+                execArgs,
                 {
                     onLine:   (line: string) => console.log(`  > ${line}`),
                     onFinish: (code: string) => { exitCode = code; finished = true; },
@@ -93,7 +99,9 @@ async function runKCR() {
         throw err;
 
     } finally {
-        // 3. Always delete the terminal — even if a command failed or timed out
+        // Always delete the terminal — even if a command failed or timed out.
+        // No `init` here: the terminal already exists from the loop above
+        // (or never was, if validation failed early — then DeleteTerminal is a no-op).
         try {
             await komodo.write("DeleteTerminal", {
                 server: server,

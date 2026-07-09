@@ -92,6 +92,28 @@ async function runKCR() {
             }
         }
 
+        // Exit the shell so onFinish fires and the action completes.
+        // Without this, bash stays alive after the last command and
+        // Komodo keeps the action in "ongoing" state indefinitely.
+        {
+            let shellExited = false;
+            await komodo.execute_server_terminal(
+                {
+                    server: server,
+                    terminal: terminalName,
+                    command: "exit 0",
+                },
+                {
+                    onLine: () => {},
+                    onFinish: () => { shellExited = true; },
+                }
+            );
+            const exitDeadline = Date.now() + 5000;
+            while (!shellExited && Date.now() < exitDeadline) {
+                await new Promise(r => setTimeout(r, 100));
+            }
+        }
+
         console.log("✅ KCR: Execution finished successfully.");
 
     } catch (err: any) {

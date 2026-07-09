@@ -38,12 +38,8 @@ komodo.execute_server_terminal(
 )
 // Call successive: stesso terminal, niente init
 komodo.execute_server_terminal({ server, terminal, command }, { onLine, onFinish })
-// Cleanup: graceful exit → hard cleanup
-Promise.race([
-  komodo.execute_server_terminal({ server, terminal, command: "exit 0" }, { onLine: () => {}, onFinish: () => {} }),
-  new Promise(r => setTimeout(r, 2000))
-])
-komodo.write("DeleteTerminal", { server, terminal, name })
+// Cleanup: DeleteTerminal with correct TerminalTarget structure
+komodo.write("DeleteTerminal", { target: { type: "Server", params: { server } }, terminal })
 ```
 
 ## Terminal lifecycle — CRITICO
@@ -51,7 +47,7 @@ Il meccanismo di apertura/chiusura terminal ha richiesto iterazioni significativ
 
 - `init` con `recreate: Always` passato **solo alla prima** `execute_server_terminal` — elimina residui da run precedenti e apre la shell
 - Le call successive **non passano `init`**: riusano lo stesso terminal e mantengono la persistenza user-context. Passare di nuovo `init` con `recreate: Always` ricreerebbe la shell ad ogni comando, perdendo `cwd`/env/sudo session.
-- `finally` block: cleanup a due passi. Prima `exit 0` alla shell bash (wrappato in `Promise.race` con timeout 2s — protegge dal caso in cui la shell sia già morta e la promise SDK resti pendente all'infinito). Poi `DeleteTerminal` per rimuovere la risorsa terminale da Komodo. Entrambi i passi sono in try/catch separati — errori di cleanup non propagano.
+- `finally` block: solo `DeleteTerminal` con la struttura corretta `{ target: { type: "Server", params: { server } }, terminal }`. **Mai usare `execute_server_terminal` per mandare `exit`** — `execute_server_terminal` fa HTTP POST streaming, la promise si risolve solo quando il server manda `__KOMODO_EXIT_CODE` sullo stream. Mandare `exit` uccide la shell ma lo stream non chiude — la promise resta pending per sempre e l'action si blocca in "running". Scoperto leggendo `komodo_client/src/terminal.ts`.
 
 ## Utilizzo tipico nell'ecosistema
 ```json

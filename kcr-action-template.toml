@@ -99,9 +99,24 @@ async function runKCR() {
         throw err;
 
     } finally {
-        // Always delete the terminal — even if a command failed or timed out.
-        // No `init` here: the terminal already exists from the loop above
-        // (or never was, if validation failed early — then DeleteTerminal is a no-op).
+        // Two-step cleanup: graceful shell exit → DeleteTerminal.
+        // The bash shell opened by `init` stays alive after commands finish,
+        // leaving the terminal open in Komodo UI. Sending "exit 0" closes it.
+        // Promise.race guards against the edge case where the shell already died —
+        // the SDK promise would hang indefinitely, so we cap the wait at 2s.
+        try {
+            await Promise.race([
+                komodo.execute_server_terminal(
+                    {
+                        server: server,
+                        terminal: terminalName,
+                        command: "exit 0",
+                    },
+                    { onLine: () => {}, onFinish: () => {} }
+                ),
+                new Promise(r => setTimeout(r, 2000)),
+            ]);
+        } catch (e) { /* graceful exit failed — proceed to hard cleanup */ }
         try {
             await komodo.write("DeleteTerminal", {
                 server: server,

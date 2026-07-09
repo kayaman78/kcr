@@ -38,7 +38,11 @@ komodo.execute_server_terminal(
 )
 // Call successive: stesso terminal, niente init
 komodo.execute_server_terminal({ server, terminal, command }, { onLine, onFinish })
-// Cleanup
+// Cleanup: graceful exit → hard cleanup
+Promise.race([
+  komodo.execute_server_terminal({ server, terminal, command: "exit 0" }, { onLine: () => {}, onFinish: () => {} }),
+  new Promise(r => setTimeout(r, 2000))
+])
 komodo.write("DeleteTerminal", { server, terminal, name })
 ```
 
@@ -47,8 +51,7 @@ Il meccanismo di apertura/chiusura terminal ha richiesto iterazioni significativ
 
 - `init` con `recreate: Always` passato **solo alla prima** `execute_server_terminal` — elimina residui da run precedenti e apre la shell
 - Le call successive **non passano `init`**: riusano lo stesso terminal e mantengono la persistenza user-context. Passare di nuovo `init` con `recreate: Always` ricreerebbe la shell ad ogni comando, perdendo `cwd`/env/sudo session.
-- `finally` block garantisce sempre `DeleteTerminal` — anche su timeout o eccezione (e su validation-error early, dove il terminal non esiste ancora: l'errore di Delete è swallowed).
-- Non usare `exit` nel flusso normale: il terminal viene chiuso solo da `DeleteTerminal`
+- `finally` block: cleanup a due passi. Prima `exit 0` alla shell bash (wrappato in `Promise.race` con timeout 2s — protegge dal caso in cui la shell sia già morta e la promise SDK resti pendente all'infinito). Poi `DeleteTerminal` per rimuovere la risorsa terminale da Komodo. Entrambi i passi sono in try/catch separati — errori di cleanup non propagano.
 
 ## Utilizzo tipico nell'ecosistema
 ```json

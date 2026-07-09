@@ -120,6 +120,10 @@ If you have one KCR Action per server, repeat the Script paste for each one. Sin
 
 ## Changelog
 
+### v2.1 — Terminal cleanup fix (stale terminals)
+- **Action cleanup**: `finally` block now sends `exit 0` to the bash shell (with `Promise.race` 2s timeout guard) before calling `DeleteTerminal`. The previous pattern (only `DeleteTerminal`) did not actually close the bash shell opened by `init`, leaving terminals open in Komodo UI after each action run. The timeout protects against the edge case where the shell already exited and the SDK promise would hang indefinitely.
+- No changes to user-facing parameters.
+
 ### v2.0 — Komodo v2 migration (breaking)
 - **Requires Komodo v2.** Migrated from `komodo.execute_terminal` (v1) to `komodo.execute_server_terminal` (v2 unified API).
 - Terminal initialization is now inline: `init: { command, recreate }` is passed on the **first** `execute_server_terminal` call only — subsequent calls reuse the same shell to preserve user-context persistence (`cwd`, env, sudo session) across commands.

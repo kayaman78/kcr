@@ -1,155 +1,103 @@
 # KCR — Komodo Command Runner
 
-**Project Status**: Active | **Version**: 2.0 | **Maintained**: Yes | **Requires**: Komodo v2
+**Version**: 2.1 | **Requires**: Komodo v2 | **License**: MIT
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Komodo](https://img.shields.io/badge/komodo-action-blue.svg)](https://github.com/mbecker20/komodo)
-[![Type](https://img.shields.io/badge/type-Action%20Template-informational.svg)](https://github.com/kayaman78/kcr)
 
-Komodo Action template that executes a sequence of Bash commands on a remote server through a persistent terminal, maintaining user context across all commands. Includes per-command timeout guard and guaranteed terminal cleanup on any exit path.
+Komodo Action that runs a sequence of Bash commands on a remote server through a persistent terminal. Maintains user context across commands, with per-command timeout and guaranteed cleanup.
 
-> Part of the **KDD ecosystem** — see also [KDD](https://github.com/kayaman78/kdd) for MySQL / PostgreSQL / MongoDB, [DABS](https://github.com/kayaman78/dabs) for SQLite, and [DABV](https://github.com/kayaman78/dabv) for Docker volumes.
+> Part of the **KDD ecosystem** — see also [KDD](https://github.com/kayaman78/kdd) for MySQL/PostgreSQL/MongoDB, [DABS](https://github.com/kayaman78/dabs) for SQLite, and [DABV](https://github.com/kayaman78/dabv) for Docker volumes.
 
 ---
 
 ## How It Works
 
-1. **Opens a persistent terminal** on the target server, already authenticated as the specified user (`root` uses `bash` directly, other users are switched via `sudo -iu`)
-2. **Runs commands sequentially**, printing output line by line
-3. **Handles errors** per command: if `stop_on_error` is `true` (default), execution stops at the first failure; otherwise it continues with a warning
-4. **Closes and deletes the terminal** when done, even if an error occurred
+1. Opens a persistent terminal on the target server (root = `bash`, other users = `sudo -iu`)
+2. Runs commands sequentially with line-by-line output
+3. Stops on first error (configurable) or continues with warning
+4. Deletes terminal on any exit path
 
 ---
 
 ## Setup
 
-In Komodo go to **Resource Sync → New Resource Sync**, paste the content of [kcr-action-template.toml](kcr-action-template.toml), and execute the sync. The Action template is created automatically with the TypeScript code and example parameters already in place.
-
-Open the imported Action, go to the **Args** field, and set `server_name` and `commands` for your use case.
+1. Create a new Action in Komodo
+2. Paste the content of [`action-template.ts`](action-template.ts) into the Script field
+3. Set your Args JSON (see [Parameters](#parameters))
 
 ---
 
 ## Parameters
 
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `server_name` | `string` | ✅ | — | Name of the target Komodo server |
-| `commands` | `string[]` | ✅ | — | Command or list of Bash commands to execute |
-| `run_as` | `string` | ❌ | `root` | User to run the commands as |
-| `stop_on_error` | `boolean` | ❌ | `true` | Stop execution on first error |
-| `timeout_seconds` | `number` | ❌ | `300` | Max seconds to wait for a single command before raising a timeout error |
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `server_name` | string | required | Komodo server name |
+| `commands` | string or string[] | required | Commands to execute |
+| `run_as` | string | `root` | User context |
+| `stop_on_error` | boolean | `true` | Stop on first failure |
+| `timeout_seconds` | number | `300` | Max seconds per command |
 
 ---
 
-## Example
-
-```json
-{
-  "server_name": "your-server-name",
-  "run_as": "root",
-  "commands": [
-    "whoami",
-    "uptime",
-    "docker ps --format 'table {{.Names}}\t{{.Status}}'"
-  ],
-  "stop_on_error": true,
-  "timeout_seconds": 300
-}
-```
-
-```
-🛠️ KCR: Starting persistent terminal on [my-server] as [root]
-[EXEC] whoami
-  > root
-[EXEC] uptime
-  > 10:42:01 up 12 days, 3:21, load average: 0.10, 0.05, 0.01
-[EXEC] docker ps --format 'table {{.Names}}\t{{.Status}}'
-  > NAMES       STATUS
-  > nginx       Up 2 hours
-✅ KCR: Execution finished successfully.
-```
-
----
-
-## Use Case: DABS + KDD via Komodo Procedure
-
-KCR is the glue that connects shell-based tools like [DABS](https://github.com/kayaman78/dabs) to Komodo's orchestration layer. A typical full-stack backup Procedure looks like this:
-
-1. **KDD Action** → backs up MySQL, PostgreSQL, MongoDB across all Docker networks
-2. **KCR Action running DABS** → backs up all SQLite databases on the same host
-3. **KCR Action running DABV** → backs up named Docker volumes
-4. **One Komodo Procedure** schedules all three, runs them sequentially, separate email report per job
+## Examples
 
 ```json
 {
   "server_name": "prod-server",
-  "run_as": "root",
-  "commands": ["bash /srv/docker/dabs/backup-sqlite.sh"],
-  "stop_on_error": true,
+  "commands": ["whoami", "uptime", "docker ps --format 'table {{.Names}}\t{{.Status}}'"],
   "timeout_seconds": 300
 }
 ```
+
+### Run DABS (SQLite backup)
+```json
+{
+  "server_name": "prod",
+  "commands": ["bash /srv/docker/dabs/backup-sqlite.sh"],
+  "timeout_seconds": 600
+}
+```
+
+### Full backup chain (Komodo Procedure)
+1. **KDD Action** → MySQL, PostgreSQL, MongoDB
+2. **KCR Action** → `bash /srv/docker/dabs/backup-sqlite.sh`
+3. **KCR Action** → `bash /srv/docker/dabv/backup-volumes.sh`
 
 ---
 
 ## Updating
 
-In Komodo, the **Script** field (TypeScript code) and the **Args** field (your JSON parameters) are stored separately. Updating KCR never touches your parameters.
+Script and Args are separate in Komodo. Updating the script never touches your parameters.
 
-**1. Open the Action in Komodo**
-
-Go to Actions → select your KCR Action.
-
-**2. Replace the Script field only**
-
-Paste the new content of [`action-template.ts`](action-template.ts) into the Script field. Your Args JSON is in a separate field and is not affected.
-
-**3. Save**
-
-Done. No server changes, no parameter re-entry.
-
----
-
-### Multiple servers
-
-If you have one KCR Action per server, repeat the Script paste for each one. Since the code is identical across all of them and the only difference is `server_name` in the Args, this takes about a minute per action.
-
-> **Tip**: To save time, update one action, verify it works, then copy-paste the Script field into the rest.
+1. Open your KCR Action
+2. Paste the new [`action-template.ts`](action-template.ts) into the Script field
+3. Save
 
 ---
 
 ## Changelog
 
-### v2.1 — Fix stale terminals
-- **DeleteTerminal fix**: `DeleteTerminal` was passing flat params (`{server, terminal, name}`) with an `as any` cast. The correct structure is `{target: {type: "Server", params: {server}}, terminal}`. The type mismatch was hidden by the cast — `DeleteTerminal` was silently failing since v2.0, which is why terminals accumulated in Komodo UI. Found by reading the `komodo_client` npm package source (`terminal.ts`).
-- **Never use `execute_server_terminal` to send `exit`**. The method opens an HTTP streaming connection that resolves only when the server sends `__KOMODO_EXIT_CODE`. Sending `exit` kills the bash shell but the stream never closes — the promise hangs forever and the action stays in "running" state.
-- No changes to user-facing parameters.
+### v2.1
+- Fixed `DeleteTerminal` params (`TerminalTarget` structure).
+- Removed `execute_server_terminal("exit")` — causes permanent hang.
 
-### v2.0 — Komodo v2 migration (breaking)
-- **Requires Komodo v2.** Migrated from `komodo.execute_terminal` (v1) to `komodo.execute_server_terminal` (v2 unified API).
-- Terminal initialization is now inline: `init: { command, recreate }` is passed on the **first** `execute_server_terminal` call only — subsequent calls reuse the same shell to preserve user-context persistence (`cwd`, env, sudo session) across commands.
-- Removed the explicit `komodo.write("CreateTerminal", ...)` step and the 500ms post-create delay — both unnecessary with v2's unified create+execute call.
-- `DeleteTerminal` cleanup pattern in `finally` block is unchanged (still guarantees terminal removal on any exit path, including validation errors and timeouts).
-- Hardened terminal name uniqueness: `kcr-${timestamp}-${random6}` instead of the previous `Math.random().substring(7)` which could occasionally produce short or empty suffixes — now collision-proof for any realistic concurrent rate.
-- No changes to user-facing parameters: `server_name`, `commands`, `run_as`, `stop_on_error`, `timeout_seconds` work exactly as before.
+### v2.0
+- Komodo v2 migration. Inline `init` on first call, persistent shell across commands.
+- Hardened terminal name: `kcr-${timestamp}-${random6}`.
 
-### v1.2
-- Added `timeout_seconds` parameter (default: 300) — raises an error if a single command exceeds the limit, preventing the action from hanging indefinitely
-- Translated inline comments to English
-- Updated JSDoc with all parameters documented
-
-### v1.1
-- Initial public release
+### v1.1–v1.2
+- Per-command timeout, initial release.
 
 ---
 
-## Related Projects
+## Ecosystem
 
-| Project | Description |
-|---------|-------------|
-| [KDD](https://github.com/kayaman78/kdd) | Docker backup for MySQL, PostgreSQL, MongoDB |
-| [DABS](https://github.com/kayaman78/dabs) | Docker automated backup for SQLite |
-| [DABV](https://github.com/kayaman78/dabv) | Docker automated backup for volumes |
+| Project | What it backs up |
+|---------|-----------------|
+| [KDD](https://github.com/kayaman78/kdd) | MySQL, PostgreSQL, MongoDB |
+| [DABS](https://github.com/kayaman78/dabs) | SQLite |
+| [DABV](https://github.com/kayaman78/dabv) | Docker volumes |
+| **KCR** | Runs DABS/DABV from Komodo |
 
 ---
 

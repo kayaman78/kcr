@@ -37,6 +37,25 @@ Komodo Action that runs a sequence of Bash commands on a remote server through a
 | `stop_on_error` | boolean | `true` | Stop on first failure |
 | `timeout_seconds` | number | `300` | Max seconds per command |
 
+### Args — ready to paste
+
+Paste this into the Action's **Args** field and edit the values:
+
+```json
+{
+  "server_name": "your-server-name",
+  "run_as": "root",
+  "commands": [
+    "whoami",
+    "uptime"
+  ],
+  "stop_on_error": true,
+  "timeout_seconds": 300
+}
+```
+
+Also in the repo as [`arguments-example.json`](arguments-example.json).
+
 ---
 
 ## Examples

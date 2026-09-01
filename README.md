@@ -6,7 +6,7 @@
 
 Komodo Action that runs a sequence of Bash commands on a remote server through a persistent terminal. Maintains user context across commands, with per-command timeout and guaranteed cleanup.
 
-> Part of the **KDD ecosystem** — see also [KDD](https://github.com/kayaman78/kdd) for MySQL/PostgreSQL/MongoDB, [DABS](https://github.com/kayaman78/dabs) for SQLite, and [DABV](https://github.com/kayaman78/dabv) for Docker volumes.
+> Part of the **KDD ecosystem** — see also [KDD](https://github.com/kayaman78/kdd) for MySQL/PostgreSQL/MongoDB, [DABS](https://github.com/kayaman78/dabs) for SQLite, [DABV](https://github.com/kayaman78/dabv) for Docker volumes, and [DABR](https://github.com/kayaman78/dabr) for host paths.
 
 ---
 
@@ -53,15 +53,19 @@ Komodo Action that runs a sequence of Bash commands on a remote server through a
 ```json
 {
   "server_name": "prod",
-  "commands": ["bash /srv/docker/dabs/backup-sqlite.sh"],
+  "commands": ["bash /srv/docker/dabs/sqlite-backup.sh"],
   "timeout_seconds": 600
 }
 ```
 
 ### Full backup chain (Komodo Procedure)
 1. **KDD Action** → MySQL, PostgreSQL, MongoDB
-2. **KCR Action** → `bash /srv/docker/dabs/backup-sqlite.sh`
+2. **KCR Action** → `bash /srv/docker/dabs/sqlite-backup.sh`
 3. **KCR Action** → `bash /srv/docker/dabv/backup-volumes.sh`
+4. **KCR Action** → `bash /srv/docker/dabr/backup-paths.sh`
+
+Run DABR last: the databases have finished dumping by then, so its snapshot
+picks up the fresh dump files along with everything else.
 
 ---
 
@@ -97,7 +101,8 @@ Script and Args are separate in Komodo. Updating the script never touches your p
 | [KDD](https://github.com/kayaman78/kdd) | MySQL, PostgreSQL, MongoDB |
 | [DABS](https://github.com/kayaman78/dabs) | SQLite |
 | [DABV](https://github.com/kayaman78/dabv) | Docker volumes |
-| **KCR** | Runs DABS/DABV from Komodo |
+| [DABR](https://github.com/kayaman78/dabr) | Host paths — bind mounts, config, generated data |
+| **KCR** | Runs the shell-based tools from Komodo |
 
 ---
 

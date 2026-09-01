@@ -19,7 +19,7 @@ Esegue comandi bash in sequenza su un server Komodo, nello stesso terminale pers
 ```json
 {
   "server_name": "prod-server",
-  "commands": ["bash /srv/docker/dabs/backup-sqlite.sh"],
+  "commands": ["bash /srv/docker/dabs/sqlite-backup.sh"],
   "run_as": "root",
   "stop_on_error": true,
   "timeout_seconds": 300
